@@ -1,0 +1,14 @@
+[package]
+name = "qi_openapi"
+version = "0.1.0"
+authors = ["Xuanwo <github@xuanwo.io>"]
+edition = "2018"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive","std"]}
+serde_json = "1.0"
+serde_yaml = "0.8"
+
+[features]
+default = ["std"]
+std = ["serde/std"]

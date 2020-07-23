@@ -1,0 +1,10 @@
+[package]
+name = "qi_rust"
+version = "0.1.0"
+authors = ["Xuanwo <github@xuanwo.io>"]
+edition = "2018"
+
+[dependencies]
+qi_openapi = {path="../qi_openapi"}
+clap = "2.33"
+serde = { version = "1.0", features = ["derive"]}

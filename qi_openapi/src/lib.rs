@@ -3,8 +3,8 @@ pub mod v3;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::Path;
     use std::fs::File;
+    use std::path::Path;
 
     #[test]
     fn json_deserialize() {

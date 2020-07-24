@@ -1,11 +1,11 @@
 use std::collections::{HashMap, HashSet};
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
-use std::fmt::Debug;
 
 use super::set::OrderedSet;
 
-struct Node<T> (HashSet<T>);
+struct Node<T>(HashSet<T>);
 
 impl<T> Deref for Node<T> {
     type Target = HashSet<T>;
@@ -16,7 +16,9 @@ impl<T> Deref for Node<T> {
 }
 
 impl<T> DerefMut for Node<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 impl<T: Hash + Eq + Clone + Debug> Node<T> {
@@ -29,7 +31,7 @@ impl<T: Hash + Eq + Clone + Debug> Node<T> {
     }
 }
 
-struct Topology<T> (HashMap<T, Node<T>>);
+struct Topology<T>(HashMap<T, Node<T>>);
 
 impl<T> Deref for Topology<T> {
     type Target = HashMap<T, Node<T>>;
@@ -40,7 +42,9 @@ impl<T> Deref for Topology<T> {
 }
 
 impl<T> DerefMut for Topology<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 impl<T: Hash + Eq + Clone + Debug> Topology<T> {
@@ -61,7 +65,12 @@ impl<T: Hash + Eq + Clone + Debug> Topology<T> {
         self.get_mut(&from).unwrap().add_edge(to);
     }
 
-    fn visit(&self, name: &T, results: &mut OrderedSet<T>, mut visited: OrderedSet<T>) -> Result<(), String> {
+    fn visit(
+        &self,
+        name: &T,
+        results: &mut OrderedSet<T>,
+        mut visited: OrderedSet<T>,
+    ) -> Result<(), String> {
         let added = visited.add(name);
         if !added {
             return Err(format!("cycle error, {:?}", visited.items));
@@ -85,7 +94,6 @@ impl<T: Hash + Eq + Clone + Debug> Topology<T> {
         Ok(results.items)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -111,10 +119,8 @@ mod tests {
         graph.add_edge(&sa, &sb);
 
         let results = match graph.sort(&sa) {
-            Err(e) => {
-                panic!(e)
-            }
-            Ok(x) => x
+            Err(e) => panic!(e),
+            Ok(x) => x,
         };
 
         assert_eq!(results.get(0).unwrap(), &sb);
@@ -124,21 +130,15 @@ mod tests {
     fn top_sort_1() {
         let mut graph = init_topology();
 
-        let (a, b, c) = (
-            &"a".to_string(),
-            &"b".to_string(),
-            &"c".to_string(),
-        );
+        let (a, b, c) = (&"a".to_string(), &"b".to_string(), &"c".to_string());
 
         // a -> b -> c
         graph.add_edge(a, b);
         graph.add_edge(b, c);
 
         let results = match graph.sort(a) {
-            Err(e) => {
-                panic!(e)
-            }
-            Ok(x) => x
+            Err(e) => panic!(e),
+            Ok(x) => x,
         };
 
         assert_eq!(results, vec![c.to_owned(), b.to_owned(), a.to_owned()]);
@@ -148,12 +148,7 @@ mod tests {
     fn top_sort_2() {
         let mut graph = init_topology();
 
-        let (a, b, c) = (
-            &"a".to_string(),
-            &"b".to_string(),
-            &"c".to_string(),
-        );
-
+        let (a, b, c) = (&"a".to_string(), &"b".to_string(), &"c".to_string());
 
         // a -> c
         // a -> b
@@ -162,12 +157,9 @@ mod tests {
         graph.add_edge(a, b);
         graph.add_edge(b, c);
 
-
         let results = match graph.sort(a) {
-            Err(e) => {
-                panic!(e)
-            }
-            Ok(x) => x
+            Err(e) => panic!(e),
+            Ok(x) => x,
         };
 
         assert_eq!(results, vec![c.to_owned(), b.to_owned(), a.to_owned()]);
@@ -184,7 +176,6 @@ mod tests {
             &"d".to_string(),
         );
 
-
         // a -> b
         // a -> d
         // d -> c
@@ -194,14 +185,14 @@ mod tests {
         graph.add_edge(d, c);
         graph.add_edge(c, b);
 
-
         let results = match graph.sort(a) {
-            Err(e) => {
-                panic!(e)
-            }
-            Ok(x) => x
+            Err(e) => panic!(e),
+            Ok(x) => x,
         };
 
-        assert_eq!(results, vec![b.to_owned(), c.to_owned(), d.to_owned(), a.to_owned()]);
+        assert_eq!(
+            results,
+            vec![b.to_owned(), c.to_owned(), d.to_owned(), a.to_owned()]
+        );
     }
 }

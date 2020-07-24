@@ -1,5 +1,5 @@
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct Spec {
@@ -86,6 +86,5 @@ pub struct Operation {
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct MediaType {
-    pub schema: Schema
+    pub schema: Schema,
 }
-

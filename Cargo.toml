@@ -1,5 +1,6 @@
 [workspace]
 members= [
+    "qi_algorithm",
     "qi_openapi",
     "qi_rust"
 ]

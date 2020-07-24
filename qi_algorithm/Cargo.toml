@@ -1,0 +1,9 @@
+[package]
+name = "qi_algorithm"
+version = "0.1.0"
+authors = ["Xuanwo <github@xuanwo.io>"]
+edition = "2018"
+description = "algorithms for qi"
+license = "Apache-2.0"
+
+[dependencies]

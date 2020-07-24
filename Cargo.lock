@@ -74,6 +74,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "qi_algorithm"
+version = "0.1.0"
+
+[[package]]
 name = "qi_openapi"
 version = "0.1.0"
 dependencies = [

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct Spec {
     pub openapi: String,
     pub paths: BTreeMap<String, PathItem>,
@@ -21,7 +21,7 @@ pub enum Method {
     Trace,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct PathItem {
     pub summary: Option<String>,
     pub description: Option<String>,
@@ -32,7 +32,7 @@ pub struct PathItem {
     pub operations: BTreeMap<Method, Operation>,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct Components {
     pub schemas: Option<BTreeMap<String, Schema>>,
     pub responses: Option<BTreeMap<String, Response>>,
@@ -44,7 +44,7 @@ pub struct Components {
 // ref: https://swagger.io/specification/
 //   - integer as a type is also supported and is defined as a JSON number without a fraction or exponent part.
 //   - null is not supported as a type (see nullable for an alternative solution).
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum SchemaType {
     Boolean,
@@ -55,7 +55,7 @@ pub enum SchemaType {
     Integer,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct Schema {
     #[serde(rename = "$ref")]
     pub ref_: Option<String>,
@@ -66,14 +66,14 @@ pub struct Schema {
     pub properties: Option<BTreeMap<String, Schema>>,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct Response {
     pub description: Option<String>,
     pub headers: Option<BTreeMap<String, Header>>,
     pub content: Option<BTreeMap<String, MediaType>>,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct Parameter {
     #[serde(rename = "$ref")]
     pub ref_: Option<String>,
@@ -85,18 +85,18 @@ pub struct Parameter {
     pub style: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct RequestBody {
     pub content: BTreeMap<String, MediaType>,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct Header {
     pub description: Option<String>,
     pub schema: Schema,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct Operation {
     pub summary: Option<String>,
     pub description: Option<String>,
@@ -108,7 +108,7 @@ pub struct Operation {
     pub responses: Option<BTreeMap<String, Response>>,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct MediaType {
     pub schema: Schema,
 }

@@ -1,13 +1,13 @@
-use crate::{Model, ModelKind, Operation, Parameter};
+use crate::{Model, ModelKind, Operation, Parameter, Service};
 use std::collections::{BTreeMap, HashMap};
 
 pub struct Generator {
-    models: BTreeMap<String, Model>,
+    srv: Service,
 }
 
 impl Generator {
-    pub fn new(models: BTreeMap<String, Model>) -> Generator {
-        Generator { models }
+    pub fn new(srv: Service) -> Generator {
+        Generator { srv }
     }
 
     fn generate_type(&self, m: &Model) -> String {
@@ -63,7 +63,7 @@ impl Generator {
                 assert!(m.name.is_some());
 
                 let name = m.name.clone().unwrap();
-                let ref_model = self.models.get(&name).unwrap();
+                let ref_model = self.srv.models.get(&name).unwrap();
 
                 if ref_model.kind == ModelKind::Struct {
                     return name;
@@ -125,7 +125,7 @@ impl ActixWebGenerator {
     }
     fn generate_iterator() {}
     pub fn generate_structs(&self) {
-        for (name, model) in self.g.models.iter() {
+        for (name, model) in self.g.srv.models.iter() {
             if model.kind != ModelKind::Struct {
                 continue;
             }

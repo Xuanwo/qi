@@ -1,4 +1,4 @@
-use crate::{Model, ModelKind, Operation, Parameter, ParameterLocation};
+use crate::{Model, ModelKind, Operation, Parameter};
 use std::collections::{BTreeMap, HashMap};
 
 pub struct Generator {
@@ -142,12 +142,38 @@ impl ActixWebGenerator {
             element: None,
         };
 
-        for param in op.input.parameters.iter() {
-            model
-                .properties
-                .as_mut()
-                .unwrap()
-                .insert(param.name.clone(), param.model.clone());
+        let m = model.properties.as_mut().unwrap();
+
+        for param in op.input.path.iter() {
+            m.insert(param.name.clone(), param.model.clone());
+        }
+        for param in op.input.query.iter() {
+            m.insert(param.name.clone(), param.model.clone());
+        }
+        for param in op.input.header.iter() {
+            m.insert(param.name.clone(), param.model.clone());
+        }
+        if let Some(body) = op.input.body {
+            if body.kind == ModelKind::String {
+                m.insert(
+                    "body".to_string(),
+                    Model {
+                        kind: ModelKind::Iterator,
+                        annotation: None,
+                        name: None,
+                        properties: None,
+                        element: Some(Box::new(Model {
+                            kind: ModelKind::Byte,
+                            annotation: None,
+                            name: None,
+                            properties: None,
+                            element: None,
+                        })),
+                    },
+                );
+            } else {
+                m.extend(body.properties.clone().unwrap());
+            }
         }
 
         self.g.generate_struct(&name, &model)
@@ -162,54 +188,36 @@ impl ActixWebGenerator {
             element: None,
         };
 
-        for param in op.output.parameters.iter() {
-            let m = model.properties.as_mut().unwrap();
+        let m = model.properties.as_mut().unwrap();
 
-            if param.location == ParameterLocation::Body {
-                match param.model.kind {
-                    ModelKind::Struct => m.extend(param.model.properties.clone().unwrap()),
-                    ModelKind::String => {
-                        m.insert(
-                            "body".to_string(),
-                            Model {
-                                kind: ModelKind::Iterator,
-                                annotation: None,
-                                name: None,
-                                properties: None,
-                                element: Some(Box::new(Model {
-                                    kind: ModelKind::Byte,
-                                    annotation: None,
-                                    name: None,
-                                    properties: None,
-                                    element: None,
-                                })),
-                            },
-                        );
-
-                        ()
-                    }
-                    ModelKind::Reference => {
-                        let ref_model = self
-                            .g
-                            .models
-                            .get(param.model.name.as_ref().unwrap().as_str())
-                            .unwrap();
-
-                        m.extend(ref_model.properties.clone().unwrap());
-
-                        ()
-                    }
-                    _ => {
-                        m.insert(param.name.clone(), param.model.clone());
-
-                        ()
-                    }
-                };
+        for param in op.output.header.iter() {
+            m.insert(param.name.clone(), param.model.clone());
+        }
+        if let Some(body) = op.output.body {
+            if body.kind == ModelKind::String {
+                m.insert(
+                    "body".to_string(),
+                    Model {
+                        kind: ModelKind::Iterator,
+                        annotation: None,
+                        name: None,
+                        properties: None,
+                        element: Some(Box::new(Model {
+                            kind: ModelKind::Byte,
+                            annotation: None,
+                            name: None,
+                            properties: None,
+                            element: None,
+                        })),
+                    },
+                );
             } else {
-                m.insert(param.name.clone(), param.model.clone());
+                if let Some(props) = body.properties.clone() {
+                    m.extend(props);
+                } else {
+                    m.insert("body".to_string(), body);
+                }
             }
-
-            println!("{:?}", m)
         }
 
         self.g.generate_struct(&name, &model)

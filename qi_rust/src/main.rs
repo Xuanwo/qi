@@ -1,6 +1,6 @@
 mod rust;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;
@@ -44,26 +44,11 @@ fn main() {
 
     let mut models = format_models(&specs);
     let global_parameters = format_parameters(&specs);
-    let mut ops = format_operations(&global_parameters, &specs);
+    let mut ops = format_operations(&specs);
 
     for (name, parameter) in global_parameters.iter() {
         if parameter.model.kind == ModelKind::Struct {
             models.insert(name.clone(), parameter.model.clone());
-        }
-    }
-
-    for op in ops.iter_mut() {
-        for param in op.input.parameters.iter_mut() {
-            if param.model.kind == ModelKind::Struct {
-                models.insert(param.name.clone(), param.model.clone());
-                param.model = Model {
-                    kind: ModelKind::Reference,
-                    annotation: None,
-                    name: Some(param.name.clone()),
-                    properties: None,
-                    element: None,
-                }
-            }
         }
     }
 
@@ -72,7 +57,7 @@ fn main() {
 
     // actix_g.generate_structs();
     for op in ops {
-        println!("{}\n", actix_g.generate_output(op))
+        println!("{}\n", actix_g.generate_input(op))
     }
 
     // let x = serde_json::to_value(&ops).unwrap();
@@ -95,8 +80,8 @@ struct Operation {
     uri: String,
     expect: Vec<usize>,
 
-    input: Message,
-    output: Message,
+    input: Input,
+    output: Output,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
@@ -105,44 +90,28 @@ struct Operation {
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-struct Message {
+struct Input {
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
-    parameters: Vec<Parameter>,
+    path: Vec<Parameter>,
+    query: Vec<Parameter>,
+    header: Vec<Parameter>,
+    body: Option<Model>,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq, Copy, Clone)]
-#[serde(rename_all = "lowercase")]
-pub enum ParameterLocation {
-    // request only
-    Path,
-    // request only
-    Query,
-
-    Header,
-    // Should have only one parameter.
-    Body,
-}
-
-impl FromStr for ParameterLocation {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "path" => Ok(ParameterLocation::Path),
-            "query" => Ok(ParameterLocation::Query),
-            "header" => Ok(ParameterLocation::Header),
-            "body" => Ok(ParameterLocation::Body),
-            _ => Err(()),
-        }
-    }
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+struct Output {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
+    status_code: usize,
+    header: Vec<Parameter>,
+    body: Option<Model>,
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct Parameter {
     name: String,
     model: Model,
-    location: ParameterLocation,
     mandatory: bool,
 }
 
@@ -220,7 +189,10 @@ struct Annotation {
     display: Option<String>,
 }
 
-fn format_operations(gp: &BTreeMap<String, Parameter>, specs: &Spec) -> Vec<Operation> {
+fn format_operations(specs: &Spec) -> Vec<Operation> {
+    let gm = format_models(&specs);
+    let gp = format_parameters(&specs);
+
     let mut ops: Vec<Operation> = Vec::new();
 
     for (path, item) in specs.paths.iter() {
@@ -232,13 +204,18 @@ fn format_operations(gp: &BTreeMap<String, Parameter>, specs: &Spec) -> Vec<Oper
                 expect: Vec::new(),
                 description: None,
                 tags: None,
-                input: Message {
+                input: Input {
                     description: None,
-                    parameters: Vec::new(),
+                    path: vec![],
+                    query: vec![],
+                    header: vec![],
+                    body: None,
                 },
-                output: Message {
+                output: Output {
                     description: None,
-                    parameters: Vec::new(),
+                    status_code: 0,
+                    header: vec![],
+                    body: None,
                 },
             };
 
@@ -246,18 +223,41 @@ fn format_operations(gp: &BTreeMap<String, Parameter>, specs: &Spec) -> Vec<Oper
 
             if let Some(params) = o.parameters.as_ref() {
                 for param in params.iter() {
-                    op.input.parameters.push(parse_parameter(gp, param));
+                    let p = parse_parameter(&gp, &gm, param);
+
+                    match param.in_.as_ref().unwrap().as_str() {
+                        "path" => op.input.path.push(p),
+                        "query" => op.input.query.push(p),
+                        "header" => op.input.header.push(p),
+                        location @ _ => panic!("invalid parameter location {}", location),
+                    }
                 }
             }
 
             if let Some(body) = o.request_body.as_ref() {
                 let (_, media_type) = body.content.iter().next().unwrap();
-                op.input.parameters.push(Parameter {
-                    name: "body".to_string(),
-                    model: parse_schema_type(&media_type.schema),
-                    location: ParameterLocation::Body,
-                    mandatory: true,
-                })
+                let m = deref_model(&gm, &parse_schema_type(&media_type.schema));
+
+                // TODO: we need to convert String body to Iterator<Byte>
+                // if m.kind == ModelKind::String {
+                //     op.input.body = Some(Model {
+                //         kind: ModelKind::Iterator,
+                //         annotation: None,
+                //         name: None,
+                //         properties: None,
+                //         element: Some(Box::new(Model {
+                //             kind: ModelKind::Byte,
+                //             annotation: None,
+                //             name: None,
+                //             properties: None,
+                //             element: None,
+                //         })),
+                //     })
+                // } else {
+                //     op.input.body = Some(m);
+                // }
+
+                op.input.body = Some(m);
             }
 
             o.responses.as_ref().and_then(|responses| {
@@ -278,17 +278,20 @@ fn format_operations(gp: &BTreeMap<String, Parameter>, specs: &Spec) -> Vec<Oper
 
                     op.expect.push(status_code);
 
-                    let mut output = Message {
+                    let mut output = Output {
                         description: None,
-                        parameters: Vec::new(),
+                        status_code,
+                        header: Vec::new(),
+                        body: None,
                     };
 
                     if let Some(headers) = response.headers.as_ref() {
                         for (name, header) in headers.iter() {
-                            output.parameters.push(Parameter {
+                            let m = parse_schema_type(&header.schema);
+
+                            output.header.push(Parameter {
                                 name: name.clone(),
-                                model: parse_schema_type(&header.schema),
-                                location: ParameterLocation::Header,
+                                model: deref_model(&gm, &m),
                                 mandatory: false,
                             });
                         }
@@ -296,17 +299,11 @@ fn format_operations(gp: &BTreeMap<String, Parameter>, specs: &Spec) -> Vec<Oper
 
                     if let Some(content) = response.content.as_ref() {
                         let (_, media_type) = content.iter().next().unwrap();
-                        output.parameters.push(Parameter {
-                            name: "body".to_string(),
-                            model: parse_schema_type(&media_type.schema),
-                            location: ParameterLocation::Body,
-                            mandatory: false,
-                        });
+                        // TODO: We should deref here.
+                        let m = parse_schema_type(&media_type.schema);
+                        output.body = Some(deref_model(&gm, &m))
                     }
 
-                    if op.output.parameters.len() != 0 {
-                        println!("operation {}'s output has been set multiple times", &op.id)
-                    }
                     op.output = output;
                 }
 
@@ -333,8 +330,6 @@ fn format_parameters(specs: &Spec) -> BTreeMap<String, Parameter> {
                 Parameter {
                     name: param.name.clone().unwrap(),
                     model: parse_schema_type(param.schema.as_ref().unwrap()),
-                    location: ParameterLocation::from_str(param.in_.as_ref().unwrap().as_str())
-                        .unwrap(),
                     mandatory: param.required.unwrap_or(false),
                 },
             );
@@ -363,14 +358,19 @@ fn format_models(specs: &Spec) -> BTreeMap<String, Model> {
     shapes
 }
 
-fn parse_parameter(gp: &BTreeMap<String, Parameter>, param: &v3::Parameter) -> Parameter {
+fn parse_parameter(
+    gp: &BTreeMap<String, Parameter>,
+    gm: &BTreeMap<String, Model>,
+    param: &v3::Parameter,
+) -> Parameter {
     if let Some(r) = param.ref_.as_ref() {
         gp.get(parse_ref(r).as_str()).unwrap().clone()
     } else {
+        let m = parse_schema_type(param.schema.as_ref().unwrap());
+
         Parameter {
             name: param.name.clone().unwrap(),
-            model: parse_schema_type(param.schema.as_ref().unwrap()),
-            location: ParameterLocation::from_str(param.in_.as_ref().unwrap().as_str()).unwrap(),
+            model: deref_model(gm, &m),
             mandatory: param.required.unwrap_or(false),
         }
     }
@@ -378,6 +378,13 @@ fn parse_parameter(gp: &BTreeMap<String, Parameter>, param: &v3::Parameter) -> P
 
 fn parse_ref(s: &String) -> String {
     s.split("/").last().unwrap().to_string()
+}
+
+fn deref_model(gm: &BTreeMap<String, Model>, m: &Model) -> Model {
+    match m.kind {
+        ModelKind::Reference => gm.get(m.name.as_ref().unwrap().as_str()).unwrap().clone(),
+        _ => m.clone(),
+    }
 }
 
 fn parse_schema_type(schema: &Schema) -> Model {

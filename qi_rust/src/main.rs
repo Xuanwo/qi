@@ -44,22 +44,13 @@ fn main() {
 
     let srv = Service::new(specs);
 
-    // for (name, parameter) in global_parameters.iter() {
-    //     if parameter.model.kind == ModelKind::Struct {
-    //         models.insert(name.clone(), parameter.model.clone());
-    //     }
-    // }
-
     let g = Generator::new(srv.clone());
     let actix_g = ActixWebGenerator::new(g);
 
-    // actix_g.generate_structs();
-    for op in srv.operations {
-        println!("{}\n", actix_g.generate_input(op))
-    }
-
-    // let x = serde_json::to_value(&ops).unwrap();
-    // println!("{}", serde_json::to_string_pretty(&x).unwrap());
+    // for op in srv.operations {
+    //     println!("{}\n", actix_g.generate_input(op))
+    // }
+    println!("{}", actix_g.generate_dispatch());
 
     ()
 }

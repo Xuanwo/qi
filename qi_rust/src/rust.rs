@@ -223,7 +223,37 @@ impl ActixWebGenerator {
         self.g.generate_struct(&name, &model)
     }
 
-    fn generate_dispatch(&self) {}
+    //  App::new().service(web::resource("/index.html").route(
+    //         web::route()
+    //             .guard(
+    //                 guard::fn_guard(
+    //                     |req| req.headers()
+    //                              .contains_key("content-type")))
+    //             .to(|| HttpResponse::MethodNotAllowed()))
+    //     );
+    pub fn generate_dispatch(&self) -> String {
+        let mut s = String::new();
+
+        s.push_str("App::new()\n");
+        for op in self.g.srv.operations.iter() {
+            let (id, method, uri) = (&op.id, &op.method, &op.uri);
+
+            s.push_str(
+                format!(
+                    "  .service(
+    web::resource(\"{}\")
+      .route(
+        web::route().guard(guard::{:?}())
+    )))
+  )\n",qq
+                    uri, method,
+                )
+                .as_str(),
+            );
+        }
+
+        s
+    }
     fn generate_parse_request(&self) {}
     fn generate_format_response(&self) {}
     fn generate_handle(&self) {}

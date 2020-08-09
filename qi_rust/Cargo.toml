@@ -6,5 +6,9 @@ edition = "2018"
 
 [dependencies]
 qi_openapi = {path="../qi_openapi"}
+qi_algorithm = {path="../qi_algorithm"}
 clap = "2.33"
 serde = { version = "1.0", features = ["derive"]}
+handlebars = "3.3.0"
+serde_json = "1.0.57"
+serde_yaml = "0.8.13"

@@ -2,5 +2,5 @@
 members= [
     "qi_algorithm",
     "qi_openapi",
-    "qi_rust"
+    "qi_rust",
 ]

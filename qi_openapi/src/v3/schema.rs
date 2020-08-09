@@ -8,21 +8,28 @@ pub struct Spec {
     pub components: Option<Components>,
 }
 
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Hash, Copy, Clone, Ord, PartialOrd)]
+#[serde(rename_all = "lowercase")]
+pub enum Method {
+    Get,
+    Put,
+    Post,
+    Delete,
+    Head,
+    Patch,
+    Options,
+    Trace,
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct PathItem {
     pub summary: Option<String>,
     pub description: Option<String>,
 
-    pub get: Option<Operation>,
-    pub put: Option<Operation>,
-    pub post: Option<Operation>,
-    pub delete: Option<Operation>,
-    pub options: Option<Operation>,
-    pub head: Option<Operation>,
-    pub patch: Option<Operation>,
-    pub trace: Option<Operation>,
+    pub parameters: Option<Vec<Parameter>>,
 
-    pub parameters: Option<BTreeMap<String, Parameter>>,
+    #[serde(flatten)]
+    pub operations: BTreeMap<Method, Operation>,
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -34,12 +41,26 @@ pub struct Components {
     pub headers: Option<BTreeMap<String, Header>>,
 }
 
+// ref: https://swagger.io/specification/
+//   - integer as a type is also supported and is defined as a JSON number without a fraction or exponent part.
+//   - null is not supported as a type (see nullable for an alternative solution).
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum SchemaType {
+    Boolean,
+    Object,
+    Array,
+    Number,
+    String,
+    Integer,
+}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct Schema {
     #[serde(rename = "$ref")]
     pub ref_: Option<String>,
     #[serde(rename = "type")]
-    pub type_: Option<String>,
+    pub type_: Option<SchemaType>,
     pub items: Option<Box<Schema>>,
     pub format: Option<String>,
     pub properties: Option<BTreeMap<String, Schema>>,
@@ -54,11 +75,13 @@ pub struct Response {
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct Parameter {
-    pub name: String,
+    #[serde(rename = "$ref")]
+    pub ref_: Option<String>,
+    pub name: Option<String>,
     #[serde(rename = "in")]
-    pub in_: String,
+    pub in_: Option<String>,
     pub required: Option<bool>,
-    pub schema: Schema,
+    pub schema: Option<Schema>,
     pub style: Option<String>,
 }
 
@@ -80,6 +103,7 @@ pub struct Operation {
     #[serde(rename = "operationId")]
     pub operation_id: String,
     pub parameters: Option<Vec<Parameter>>,
+    #[serde(rename = "requestBody")]
     pub request_body: Option<RequestBody>,
     pub responses: Option<BTreeMap<String, Response>>,
 }

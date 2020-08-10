@@ -245,7 +245,7 @@ impl ActixWebGenerator {
       .route(
         web::route().guard(guard::{:?}())
     )))
-  )\n",qq
+  )\n",
                     uri, method,
                 )
                 .as_str(),

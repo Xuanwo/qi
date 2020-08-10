@@ -11,7 +11,6 @@ use std::str::FromStr;
 use clap::{crate_authors, crate_description, crate_version, App, Arg};
 use serde::{Deserialize, Serialize};
 
-use qi_algorithm;
 use qi_openapi::v3;
 pub use qi_openapi::v3::Method;
 use qi_openapi::v3::{from_json_reader, from_yaml_reader, Schema, SchemaType, Spec};
@@ -47,10 +46,10 @@ fn main() {
     let g = Generator::new(srv.clone());
     let actix_g = ActixWebGenerator::new(g);
 
-    // for op in srv.operations {
-    //     println!("{}\n", actix_g.generate_input(op))
-    // }
-    println!("{}", actix_g.generate_dispatch());
+    for op in srv.operations {
+        println!("{}\n", actix_g.generate_output(op))
+    }
+    // println!("{}", actix_g.generate_dispatch());
 
     ()
 }
